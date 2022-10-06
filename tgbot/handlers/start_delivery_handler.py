@@ -9,6 +9,9 @@ from tgbot.keyboards.inline.menu_buttons import inicialization_delivery
 from zxc_bot_delivery.tgbot.keyboards.inline.callback_datas import inicialization_delivery_callback
 
 
+
+
+
 async def make_delivery(call: CallbackQuery):
     callback_data = call.data
     logging.info(f"call = {callback_data}")
