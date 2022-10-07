@@ -1,14 +1,13 @@
 from selenium import webdriver
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup as BS
 import json
 import time
 
 
-class KFC_parser:
+class VkusnoITochka_parser:
 	def __init__(self):
 		chrome_options = Options()
 		chrome_options.add_argument("--headless")
@@ -53,8 +52,4 @@ class KFC_parser:
 
 			with open('menu.json', 'w', encoding='utf-8') as f:
 				json.dump(menu_json, f, ensure_ascii=False)
-
-
-p = KFC_parser()
-p.get_menu()
 

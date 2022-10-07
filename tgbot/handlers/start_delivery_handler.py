@@ -6,10 +6,11 @@ from aiogram.types import CallbackQuery
 from tgbot.keyboards.inline.callback_datas import menu_callback
 from tgbot.keyboards.inline.menu_buttons import inicialization_delivery
 
-from zxc_bot_delivery.tgbot.keyboards.inline.callback_datas import inicialization_delivery_callback
+from tgbot.keyboards.inline.callback_datas import inicialization_delivery_callback
 
-
-
+import os, re, sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from test_parser import VkusnoITochka_parser
 
 
 async def make_delivery(call: CallbackQuery):
@@ -21,9 +22,10 @@ async def make_delivery(call: CallbackQuery):
 async def make_delivery_restaraunts(call: CallbackQuery):
     callback_data = call.data
     logging.info(f"call = {callback_data}")
+    await call.message.answer("Загружаю рестораны....")
     #парсер
-
-    await call.message.answer("Я вашу мать ебал")
+    VkusnoITochka_parser().get_menu()
+    await call.message.answer("Все отлично!")
 
 
 def register_make_delivery(dp: Dispatcher):
