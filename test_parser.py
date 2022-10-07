@@ -11,9 +11,12 @@ class VkusnoITochka_parser:
 	def __init__(self):
 		chrome_options = Options()
 		chrome_options.add_argument("--headless")
+		chrome_options.add_argument("--log-level=3")
 		self.url = "https://vkusnoitochka.ru/menu"
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
 		self.driver.set_window_size(1920, 1080)
+		s = self.driver.get_window_size()
+		print(s["width"], s["height"])
 		self.get_page()
 
 	
@@ -38,17 +41,20 @@ class VkusnoITochka_parser:
 			menu_json[item] = list()
 
 		for menu_item in driver_menu_items:
-			menu_item.click()
-			time.sleep(1/3)
+			try:
+				menu_item.click()
+				time.sleep(1/3)
 
-			self.soup = BS(self.driver.page_source, 'lxml')
-			menu = self.soup.find_all(class_='catalog-product')
+				self.soup = BS(self.driver.page_source, 'lxml')
+				menu = self.soup.find_all(class_='catalog-product')
 
-			selected_item = self.soup.find(class_='menu-categories__item_selected').text
-			for item in menu:
-				text = str(item.find(class_='catalog-product-title').text)
-				price = ' '.join([str(i.strip()) for i in item.find(class_='catalog-product__price').text.split('\n')])
-				menu_json[selected_item].append([text, price])
+				selected_item = self.soup.find(class_='menu-categories__item_selected').text
+				for item in menu:
+					text = str(item.find(class_='catalog-product-title').text)
+					price = ' '.join([str(i.strip()) for i in item.find(class_='catalog-product__price').text.split('\n')])
+					menu_json[selected_item].append([text, price])
+			except:
+				pass
 
 			with open('menu.json', 'w', encoding='utf-8') as f:
 				json.dump(menu_json, f, ensure_ascii=False)
