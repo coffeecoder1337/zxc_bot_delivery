@@ -15,8 +15,6 @@ class VkusnoITochka_parser:
 		self.url = "https://vkusnoitochka.ru/menu"
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
 		self.driver.set_window_size(1920, 1080)
-		s = self.driver.get_window_size()
-		print(s["width"], s["height"])
 		self.get_page()
 
 	
@@ -36,9 +34,11 @@ class VkusnoITochka_parser:
 		menu_items_titles = [item.text for item in menu_items]
 		menu_json = dict()
 
-
+		i=0
 		for item in menu_items_titles:
 			menu_json[item] = list()
+			menu_json[item].append(i)
+			i+=1
 
 		for menu_item in driver_menu_items:
 			try:
@@ -49,10 +49,12 @@ class VkusnoITochka_parser:
 				menu = self.soup.find_all(class_='catalog-product')
 
 				selected_item = self.soup.find(class_='menu-categories__item_selected').text
+				id_category = 0
 				for item in menu:
 					text = str(item.find(class_='catalog-product-title').text)
 					price = ' '.join([str(i.strip()) for i in item.find(class_='catalog-product__price').text.split('\n')])
-					menu_json[selected_item].append([text, price])
+					menu_json[selected_item].append([[id_category, text], price])
+					id_category += 1
 			except:
 				pass
 
