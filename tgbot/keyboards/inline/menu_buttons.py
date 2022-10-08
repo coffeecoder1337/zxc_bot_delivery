@@ -7,7 +7,7 @@ import time
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from tgbot.keyboards.inline.callback_datas import menu_callback, menu_vkusochka_callback, \
-    inicialization_delivery_callback
+    inicialization_delivery_callback, basket_callback
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from test_parser import VkusnoITochka_parser
@@ -16,7 +16,7 @@ from test_parser import VkusnoITochka_parser
 basket_back = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text="Назад", callback_data=menu_callback.new(choiсe="start_delivery"))
+            InlineKeyboardButton(text="Назад", callback_data=basket_callback.new(step="back"))
         ]
     ]
 )
@@ -33,7 +33,7 @@ menu_keyboard = InlineKeyboardMarkup(
             InlineKeyboardButton(text="Мои траты", callback_data=menu_callback.new(choiсe="my_spend"))
         ],
         [
-            InlineKeyboardButton(text="Отключить рассылку", callback_data=menu_callback.new(choiсe="connect_me"))
+            InlineKeyboardButton(text="Рассылка", callback_data=menu_callback.new(choiсe="disconnect_me"))
         ],
     ]
 )
