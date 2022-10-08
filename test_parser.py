@@ -8,7 +8,7 @@ import json
 import time
 
 
-class KFC_parser:
+class VkusnoITochka_parser:
 	def __init__(self):
 		chrome_options = Options()
 		chrome_options.add_argument("--headless")
@@ -61,6 +61,6 @@ class KFC_parser:
 				json.dump(menu_json, f, ensure_ascii=False)
 
 
-p = KFC_parser()
+p = VkusnoITochka_parser()
 p.get_menu()
 
