@@ -20,12 +20,15 @@ async def check_basket(call: CallbackQuery):
         f.close()
         answer = ''
         summary = 0
+        result = 0
         for people in basket:
             out_string = f'@{people}:\n'
             for item in basket[people]:
                 summary += int(item[1][0])
                 out_string += str(item[0]) + " " + str(item[1][0]) + "\n"
             answer += out_string + "============\n" + f"Итог: {summary} руб" + "\n\n"
+            result += summary
+        answer += "------------\n" + f"Всего: {result} руб"
     if answer != '':
         await call.message.edit_text(answer, reply_markup=basket_back)
     else:
