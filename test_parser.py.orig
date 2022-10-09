@@ -10,26 +10,23 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 class VkusnoITochka_parser:
 	def __init__(self):
-		self.yandex_base_url = "https://eda.yandex.ru"
-		
-		self.yandex_url = "https://eda.yandex.ru/Dubna?shippingType=delivery"
-		self.vit_url = "https://vkusnoitochka.ru"
 		chrome_options = Options()
 		chrome_options.add_argument("--headless")
 		chrome_options.add_argument("--log-level=3")
+		self.url = "https://vkusnoitochka.ru/menu"
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
-		self.driver.set_window_size(1920, 20000)
-		
+		self.driver.set_window_size(1920, 1080)
+		self.get_page()
 
-	def get_page(self, url):
-		self.driver.get(url)
+	
+	def get_page(self):
+		self.driver.get(self.url)
 		time.sleep(1)
 		html = self.driver.page_source
 		self.soup = BS(html, 'lxml')
 
-	def get_vit_menu(self):
-		self.get_page(self.vit_url)
-		time.sleep(1)
+
+	def get_menu(self):
 		menu = self.soup.find_all(class_='catalog-product')
 		menu_items = self.soup.find_all(class_='menu-categories__item')
 		driver_menu_items = self.driver.find_elements(By.CLASS_NAME, 'menu-categories__item')
@@ -65,41 +62,10 @@ class VkusnoITochka_parser:
 			with open('menu.json', 'w', encoding='utf-8') as f:
 				json.dump(menu_json, f, ensure_ascii=False)
 
+<<<<<<< HEAD
 
-	def get_yandex_restaurants(self):
-		self.get_page(self.yandex_url)
-		all_restaurants = self.soup.find(class_='PlaceList_lg').find_all(class_='PlaceListBduItem_lg')
-		return all_restaurants
+p = VkusnoITochka_parser()
+p.get_menu()
 
-
-	def get_yandex_restauarnts_titles(self):
-		return [restaurant.find(class_='NewPlaceItem_title').text for restaurant in self.get_yandex_restaurants()]
-
-
-	def get_restaurants_links(self):
-		return [restaurant.find('a')['href'] for restaurant in self.get_yandex_restaurants()]
-		
-
-	def get_restaurant_menu(self):
-		links = self.get_restaurants_links()
-		all_menu = []
-		for link in links:
-			print(link)
-			self.get_page(self.yandex_base_url + link)
-			time.sleep(1)
-			t = []
-			for menu in self.soup.find_all(class_='RestaurantMenu_list'):
-				for food in menu.find_all(class_='RestaurantMenu_item'):
-					food_name = food.find(class_='UiKitDesktopProductCard_name').text
-					food_price = food.find(class_='UiKitDesktopProductCard_price').text.split()[0]
-					t.append([food_name, food_price])
-			all_menu.append(t)
-		return all_menu
-		
-
-if __name__ == '__main__':
-	p = VkusnoITochka_parser()
-	print(p.get_restaurant_menu())
-	p.driver.close()
-	p.driver.quit()
-	
+=======
+>>>>>>> db7f4525085dd001cc1f3fe41b4b92ac78db0d28

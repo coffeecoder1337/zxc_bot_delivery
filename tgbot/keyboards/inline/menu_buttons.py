@@ -56,10 +56,10 @@ def sets_by_restaraunt():
     try:
         last_modified = time.strftime("%Y-%m-%d", time.strptime(time.ctime(os.path.getmtime("menu.json"))))
         if str(last_modified) != str(datetime.date.today()):         #проерка, если сегодня изменялся файл (парсился), то еще раз его парсить не надо
-            VkusnoITochka_parser().get_menu()
+            VkusnoITochka_parser().get_vit_menu()
 
     except:
-        VkusnoITochka_parser().get_menu()
+        VkusnoITochka_parser().get_vit_menu()
 
     with open("menu.json", "r", encoding='utf-8') as file:
         vkusochka_menu = json.load(file)
