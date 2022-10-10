@@ -60,14 +60,17 @@ inicialization_delivery = InlineKeyboardMarkup(
 
 def sets_by_restaraunt():
     menu_vkusocka_kb = []
-
+    p = VkusnoITochka_parser()    
     try:
         last_modified = time.strftime("%Y-%m-%d", time.strptime(time.ctime(os.path.getmtime("Вкусно и точка.json"))))
         if str(last_modified) != str(datetime.date.today()):         #проерка, если сегодня изменялся файл (парсился), то еще раз его парсить не надо
-            VkusnoITochka_parser().get_vit_menu()
+            p.get_vit_menu()
+            p.parse_online_restaurants()
+
 
     except:
-        VkusnoITochka_parser().get_vit_menu()
+        p.get_vit_menu()
+        p.parse_online_restaurants()
 
     with open("Вкусно и точка.json", "r", encoding='utf-8') as file:
         vkusochka_menu = json.load(file)

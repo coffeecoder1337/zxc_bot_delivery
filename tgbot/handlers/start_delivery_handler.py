@@ -12,6 +12,8 @@ from tgbot.keyboards.inline.menu_buttons import inicialization_delivery, sets_by
 
 from tgbot.keyboards.inline.callback_datas import inicialization_delivery_callback
 from tgbot.misc.states import MenuStateVkusochka
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
+from test_parser import VkusnoITochka_parser
 
 
 def find_page(category):

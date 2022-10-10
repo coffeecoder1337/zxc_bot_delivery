@@ -1,5 +1,6 @@
 import json
 import time
+import requests
 
 from bs4 import BeautifulSoup as BS
 from selenium import webdriver
@@ -11,17 +12,17 @@ from webdriver_manager.chrome import ChromeDriverManager
 class VkusnoITochka_parser:
 	def __init__(self):
 		self.yandex_base_url = "https://eda.yandex.ru"
-		
 		self.yandex_url = "https://eda.yandex.ru/Dubna?shippingType=delivery"
 		self.vit_url = "https://vkusnoitochka.ru"
+		
+		
+
+	def get_page(self, url):
 		chrome_options = Options()
 		chrome_options.add_argument("--headless")
 		chrome_options.add_argument("--log-level=3")
 		self.driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
 		self.driver.set_window_size(1920, 20000)
-		
-
-	def get_page(self, url):
 		self.driver.get(url)
 		time.sleep(1)
 		html = self.driver.page_source
@@ -69,8 +70,8 @@ class VkusnoITochka_parser:
 			except:
 				pass
 
-			with open('Вкусно и точка.json', 'w', encoding='utf-8') as f:
-				json.dump(menu_json, f, ensure_ascii=False)
+		with open('Вкусно и точка.json', 'w', encoding='utf-8') as f:
+			f.write(json.dumps(menu_json, ensure_ascii=False))
 
 
 	def get_yandex_restaurants(self):
@@ -81,13 +82,18 @@ class VkusnoITochka_parser:
 
 	def get_restaurants_links_and_titles(self):
 		return [[restaurant.find('a')['href'], restaurant.find(class_='NewPlaceItem_title').text] for restaurant in self.get_yandex_restaurants()]
-		
+
+
+	def parse_online_restaurants(self):
+		restaurants_titles = {"restaurants": [restaurant[1] for restaurant in self.get_restaurants_links_and_titles()]}
+		with open("restaurants.json", "w", encoding='utf-8') as f:
+			f.write(json.dumps(restaurants_titles, ensure_ascii=False))
+
 
 	def get_restaurant_menu(self):
 		restaurants = self.get_restaurants_links_and_titles()
-		restaurants_titles = []
+		self.parse_online_restaurants()
 		for restaurant in restaurants:
-			restaurants_titles.append(restaurant[1])
 			self.get_page(self.yandex_base_url + restaurant[0])
 			time.sleep(1)
 			all_menu = dict()
@@ -111,17 +117,14 @@ class VkusnoITochka_parser:
 					id_category += 1
 				all_menu[catergory].append(temp_list)
 
-				# restaurant_menu.append([food_name, food_price])
 			with open(f"{restaurant[1].strip()}.json", "w", encoding='utf-8') as f:
 				f.write(json.dumps(all_menu, ensure_ascii=False))
-			# all_menu.append(restaurant_menu)
-		with open("restaurants.json", "w", encoding='utf-8') as f:
-			f.write(json.dumps(restaurants_titles, ensure_ascii=False))
+		
 		
 
 if __name__ == '__main__':
 	p = VkusnoITochka_parser()
-	# p.get_vit_menu()
+	p.get_vit_menu()
 	p.get_restaurant_menu()
 	p.driver.close()
 	p.driver.quit()
