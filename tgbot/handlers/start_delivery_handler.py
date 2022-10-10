@@ -84,7 +84,7 @@ async def make_delivery_restaraunts(call: CallbackQuery, state: FSMContext):
 
 
 async def delivery_restaraunts_category(call: CallbackQuery, state: FSMContext):
-    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {1}", reply_markup=food_by_category(call.data.split(':')[1].strip(), 0))
+    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {1}/{lenth}", reply_markup=food_by_category(call.data.split(':')[1].strip(), 0))
     await state.update_data(page=0)
     await state.update_data(category=call.data.split(':')[1].strip())
     await state.set_state(MenuStateVkusochka.Q2)
@@ -100,7 +100,7 @@ async def delivery_restaraunts_category_left(call: CallbackQuery, state: FSMCont
     else:
         page = lenth - 1
     await state.update_data(page=page)
-    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {page+1}", reply_markup=food_by_category(data=category, page=page))
+    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {page+1}/{lenth}", reply_markup=food_by_category(data=category, page=page))
 
 
 async def delivery_restaraunts_category_right(call: CallbackQuery, state: FSMContext):
@@ -113,7 +113,7 @@ async def delivery_restaraunts_category_right(call: CallbackQuery, state: FSMCon
     else:
         page += 1
     await state.update_data(page=page)
-    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {page+1}", reply_markup=food_by_category(data=category, page=page))
+    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {page+1}/{lenth}", reply_markup=food_by_category(data=category, page=page))
 
 
 async def add_to_basket(call: CallbackQuery, state: FSMContext):

@@ -69,7 +69,7 @@ class VkusnoITochka_parser:
 			except:
 				pass
 
-			with open('menu.json', 'w', encoding='utf-8') as f:
+			with open('Вкусно и точка.json', 'w', encoding='utf-8') as f:
 				json.dump(menu_json, f, ensure_ascii=False)
 
 
@@ -79,34 +79,50 @@ class VkusnoITochka_parser:
 		return all_restaurants
 
 
-	def get_yandex_restauarnts_titles(self):
-		return [restaurant.find(class_='NewPlaceItem_title').text for restaurant in self.get_yandex_restaurants()]
-
-
-	def get_restaurants_links(self):
-		return [restaurant.find('a')['href'] for restaurant in self.get_yandex_restaurants()]
+	def get_restaurants_links_and_titles(self):
+		return [[restaurant.find('a')['href'], restaurant.find(class_='NewPlaceItem_title').text] for restaurant in self.get_yandex_restaurants()]
 		
 
 	def get_restaurant_menu(self):
-		links = self.get_restaurants_links()
-		all_menu = []
-		for link in links:
-			print(link)
-			self.get_page(self.yandex_base_url + link)
+		restaurants = self.get_restaurants_links_and_titles()
+		restaurants_titles = []
+		for restaurant in restaurants:
+			restaurants_titles.append(restaurant[1])
+			self.get_page(self.yandex_base_url + restaurant[0])
 			time.sleep(1)
-			t = []
-			for menu in self.soup.find_all(class_='RestaurantMenu_list'):
+			all_menu = dict()
+			restaurant_menu = []
+			i = 0
+			for menu in self.soup.find_all(class_='RestaurantMenu_category'):
+				catergory = menu.find('h2').text
+				all_menu[catergory] = list()
+				all_menu[catergory].append(i)
+				i += 1
+				id_category = 0
+				temp_list = []
 				for food in menu.find_all(class_='RestaurantMenu_item'):
 					food_name = food.find(class_='UiKitDesktopProductCard_name').text
 					food_price = food.find(class_='UiKitDesktopProductCard_price').text.split()[0]
-					t.append([food_name, food_price])
-			all_menu.append(t)
-		return all_menu
+
+					if len(temp_list) > 9:
+						all_menu[catergory].append(temp_list)
+						temp_list = []
+					temp_list.append([[id_category, food_name], food_price])
+					id_category += 1
+				all_menu[catergory].append(temp_list)
+
+				# restaurant_menu.append([food_name, food_price])
+			with open(f"{restaurant[1].strip()}.json", "w", encoding='utf-8') as f:
+				f.write(json.dumps(all_menu, ensure_ascii=False))
+			# all_menu.append(restaurant_menu)
+		with open("restaurants.json", "w", encoding='utf-8') as f:
+			f.write(json.dumps(restaurants_titles, ensure_ascii=False))
 		
 
 if __name__ == '__main__':
 	p = VkusnoITochka_parser()
-	p.get_vit_menu()
+	# p.get_vit_menu()
+	p.get_restaurant_menu()
 	p.driver.close()
 	p.driver.quit()
 	
