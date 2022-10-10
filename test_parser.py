@@ -54,11 +54,18 @@ class VkusnoITochka_parser:
 
 				selected_item = self.soup.find(class_='menu-categories__item_selected').text
 				id_category = 0
+				temp_list = []
 				for item in menu:
 					text = str(item.find(class_='catalog-product-title').text)
 					price = ' '.join([str(i.strip()) for i in item.find(class_='catalog-product__price').text.split('\n')])
-					menu_json[selected_item].append([[id_category, text], price])
+					if len(temp_list) > 9:
+						menu_json[selected_item].append(temp_list)
+						temp_list = []
+					temp_list.append([[id_category, text], price])
 					id_category += 1
+				menu_json[selected_item].append(temp_list)
+
+
 			except:
 				pass
 
@@ -99,7 +106,7 @@ class VkusnoITochka_parser:
 
 if __name__ == '__main__':
 	p = VkusnoITochka_parser()
-	print(p.get_restaurant_menu())
+	p.get_vit_menu()
 	p.driver.close()
 	p.driver.quit()
 	
