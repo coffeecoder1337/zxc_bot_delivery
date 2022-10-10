@@ -65,11 +65,13 @@ def sets_by_restaraunt():
         last_modified = time.strftime("%Y-%m-%d", time.strptime(time.ctime(os.path.getmtime("Вкусно и точка.json"))))
         if str(last_modified) != str(datetime.date.today()):         #проерка, если сегодня изменялся файл (парсился), то еще раз его парсить не надо
             p.get_vit_menu()
+            p.get_restaurant_menu()
             p.parse_online_restaurants()
 
 
     except:
         p.get_vit_menu()
+        p.get_restaurant_menu()
         p.parse_online_restaurants()
 
     with open("Вкусно и точка.json", "r", encoding='utf-8') as file:
