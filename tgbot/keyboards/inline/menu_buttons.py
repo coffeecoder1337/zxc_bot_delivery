@@ -13,13 +13,21 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')
 from test_parser import VkusnoITochka_parser
 
 
-basket_back = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            InlineKeyboardButton(text="Назад", callback_data=basket_callback.new(step="back"))
+def basket_back(client_id):
+    buttons_list = [
+            [
+                InlineKeyboardButton(text="Назад", callback_data=basket_callback.new(step="back"))
+            ]
         ]
-    ]
-)
+    with open('who_start_delivery.json', 'r', encoding='utf-8') as file:
+        client_deliver = json.load(file)
+        deliver_id = client_deliver['customer'][0]
+        if str(deliver_id) == str(client_id):
+            buttons_list.append([
+                InlineKeyboardButton(text="Сделать заказ и очистить корзину", callback_data=basket_callback.new(step="clear_basket"))
+            ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons_list)
+
 
 menu_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
