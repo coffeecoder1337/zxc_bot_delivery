@@ -14,6 +14,15 @@ from tgbot.keyboards.inline.callback_datas import inicialization_delivery_callba
 from tgbot.misc.states import MenuStateVkusochka
 
 
+def find_page(category):
+    with open("menu.json", "r", encoding='utf-8') as file:
+        vkusochka_menu = json.load(file)
+        for ct in vkusochka_menu:
+            if str(vkusochka_menu[ct][0]) == str(category):
+                out = ct
+        return len(vkusochka_menu[out][1:])
+
+
 async def check_basket(call: CallbackQuery):
     with open('basket.json', 'r', encoding='utf-8') as f:
         basket = json.load(f)
@@ -75,9 +84,36 @@ async def make_delivery_restaraunts(call: CallbackQuery, state: FSMContext):
 
 
 async def delivery_restaraunts_category(call: CallbackQuery, state: FSMContext):
-    await call.message.edit_text("Выебите блюдо)", reply_markup=food_by_category(call.data.split(':')[1].strip()))
+    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {1}", reply_markup=food_by_category(call.data.split(':')[1].strip(), 0))
+    await state.update_data(page=0)
     await state.update_data(category=call.data.split(':')[1].strip())
     await state.set_state(MenuStateVkusochka.Q2)
+
+
+async def delivery_restaraunts_category_left(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    page = int(data.get('page'))
+    category = data.get('category')
+    lenth = find_page(category)
+    if page - 1 >= 0:
+        page -= 1
+    else:
+        page = lenth - 1
+    await state.update_data(page=page)
+    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {page+1}", reply_markup=food_by_category(data=category, page=page))
+
+
+async def delivery_restaraunts_category_right(call: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    page = data.get('page')
+    category = data.get('category')
+    lenth = find_page(category)
+    if page + 1 == lenth:
+        page = 0
+    else:
+        page += 1
+    await state.update_data(page=page)
+    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {page+1}", reply_markup=food_by_category(data=category, page=page))
 
 
 async def add_to_basket(call: CallbackQuery, state: FSMContext):
@@ -102,6 +138,7 @@ async def add_to_basket(call: CallbackQuery, state: FSMContext):
                         basket_old[str(call.from_user.username)] = []
                     basket_old[str(call.from_user.username)].append([item[0][1], re.findall(r'\d+', item[1])])
                     basket.write(json.dumps(basket_old, ensure_ascii=False))
+                    await call.answer(text=f'{item[0][1]} добавлено в корзину', show_alert=True)
 
 
 async def delivery_restaraunts_category_back(call: CallbackQuery, state: FSMContext):
@@ -158,5 +195,8 @@ def register_make_delivery(dp: Dispatcher):
     dp.register_callback_query_handler(dont_make_delivery_restaraunts, inicialization_delivery_callback.filter(choiсe="no_inicialize"), state=None)
     dp.register_callback_query_handler(make_delivery_back, menu_vkusochka_callback.filter(category="back"), state=MenuStateVkusochka.Q1)
     dp.register_callback_query_handler(delivery_restaraunts_category_back, menu_vkusochka_callback.filter(category="back"), state=MenuStateVkusochka.Q2)
+    dp.register_callback_query_handler(delivery_restaraunts_category_left, menu_vkusochka_callback.filter(category="chel_peremestilsya_vlevo"), state=MenuStateVkusochka.Q2)
+    dp.register_callback_query_handler(delivery_restaraunts_category_right, menu_vkusochka_callback.filter(category="chel_peremestilsya_vpravo"), state=MenuStateVkusochka.Q2)
     dp.register_callback_query_handler(add_to_basket, state=MenuStateVkusochka.Q2)
     dp.register_callback_query_handler(delivery_restaraunts_category, state=MenuStateVkusochka.Q1)
+

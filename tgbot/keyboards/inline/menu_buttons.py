@@ -72,16 +72,20 @@ def sets_by_restaraunt():
         return menu_vkusocka_keyboard
 
 
-def food_by_category(data):
+def food_by_category(data, page):
     menu_vkusocka_in_kb = []
+    step = int(page)
     with open("menu.json", "r", encoding='utf-8') as file:
         vkusochka_menu = json.load(file)
         for ct in vkusochka_menu:
             if str(vkusochka_menu[ct][0]) == str(data):
                 category = ct
-        for zxc in vkusochka_menu[category][1::]:
+        for zxc in vkusochka_menu[category][1::][step]:
             menu_vkusocka_in_kb.append([InlineKeyboardButton(text=f'{zxc[0][1]} {zxc[1]}', callback_data=menu_vkusochka_callback.new(category=zxc[0][0]))])
+        left_button = InlineKeyboardButton(text="←", callback_data=menu_vkusochka_callback.new(category="chel_peremestilsya_vlevo"))
         back_button = InlineKeyboardButton(text="Назад", callback_data=menu_vkusochka_callback.new(category="back"))
+        right_button = InlineKeyboardButton(text="→", callback_data=menu_vkusochka_callback.new(category="chel_peremestilsya_vpravo"))
+        last_button = [left_button, back_button, right_button]
+        menu_vkusocka_in_kb.append(last_button)
         food_keyboard = InlineKeyboardMarkup(inline_keyboard=menu_vkusocka_in_kb)
-        food_keyboard.insert(back_button)
         return food_keyboard
