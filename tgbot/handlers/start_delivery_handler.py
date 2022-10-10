@@ -15,7 +15,7 @@ from tgbot.misc.states import MenuStateVkusochka
 
 
 def find_page(category):
-    with open("menu.json", "r", encoding='utf-8') as file:
+    with open("Вкусно и точка.json", "r", encoding='utf-8') as file:
         vkusochka_menu = json.load(file)
         for ct in vkusochka_menu:
             if str(vkusochka_menu[ct][0]) == str(category):
@@ -102,6 +102,7 @@ async def make_delivery_restaraunts(call: CallbackQuery, state: FSMContext):
 
 
 async def delivery_restaraunts_category(call: CallbackQuery, state: FSMContext):
+    lenth = find_page(call.data.split(':')[1].strip())
     await call.message.edit_text(f"Выебите блюдо)\nСтраница: {1}/{lenth}", reply_markup=food_by_category(call.data.split(':')[1].strip(), 0))
     await state.update_data(page=0)
     await state.update_data(category=call.data.split(':')[1].strip())
@@ -139,7 +140,7 @@ async def add_to_basket(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     category = data.get('category')
     page = data.get('page')
-    with open("menu.json", "r", encoding='utf-8') as file:
+    with open("Вкусно и точка.json", "r", encoding='utf-8') as file:
         vkusochka_menu = json.load(file)
         file.close()
         for categorys in vkusochka_menu:
@@ -175,6 +176,7 @@ async def delivery_restaraunts_category_back(call: CallbackQuery, state: FSMCont
                     reply_markup=sets_by_restaraunt())
                 await state.set_state(MenuStateVkusochka.Q1)
         else:
+            await state.finish()
             await call.message.edit_text("В данный момент никто не начал заказ. Вы хотите инициировать доставку?",
                                          reply_markup=inicialization_delivery)
 

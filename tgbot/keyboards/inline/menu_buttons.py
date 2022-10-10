@@ -62,14 +62,14 @@ def sets_by_restaraunt():
     menu_vkusocka_kb = []
 
     try:
-        last_modified = time.strftime("%Y-%m-%d", time.strptime(time.ctime(os.path.getmtime("menu.json"))))
+        last_modified = time.strftime("%Y-%m-%d", time.strptime(time.ctime(os.path.getmtime("Вкусно и точка.json"))))
         if str(last_modified) != str(datetime.date.today()):         #проерка, если сегодня изменялся файл (парсился), то еще раз его парсить не надо
             VkusnoITochka_parser().get_vit_menu()
 
     except:
         VkusnoITochka_parser().get_vit_menu()
 
-    with open("menu.json", "r", encoding='utf-8') as file:
+    with open("Вкусно и точка.json", "r", encoding='utf-8') as file:
         vkusochka_menu = json.load(file)
         for category in vkusochka_menu:
             if len(vkusochka_menu[category]) > 1 and category:
@@ -83,7 +83,7 @@ def sets_by_restaraunt():
 def food_by_category(data, page):
     menu_vkusocka_in_kb = []
     step = int(page)
-    with open("menu.json", "r", encoding='utf-8') as file:
+    with open("Вкусно и точка.json", "r", encoding='utf-8') as file:
         vkusochka_menu = json.load(file)
         for ct in vkusochka_menu:
             if str(vkusochka_menu[ct][0]) == str(data):
