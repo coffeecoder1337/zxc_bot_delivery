@@ -69,8 +69,8 @@ class VkusnoITochka_parser:
 			except:
 				pass
 
-			with open('Вкусно и точка.json', 'w', encoding='utf-8') as f:
-				json.dump(menu_json, f, ensure_ascii=False)
+		with open('Вкусно и точка.json', 'w', encoding='utf-8') as f:
+			f.write(json.dumps(menu_json, ensure_ascii=False))
 
 
 	def get_yandex_restaurants(self):
@@ -121,7 +121,7 @@ class VkusnoITochka_parser:
 
 if __name__ == '__main__':
 	p = VkusnoITochka_parser()
-	# p.get_vit_menu()
+	p.get_vit_menu()
 	p.get_restaurant_menu()
 	p.driver.close()
 	p.driver.quit()

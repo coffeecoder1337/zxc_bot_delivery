@@ -7,25 +7,29 @@ import time
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from tgbot.keyboards.inline.callback_datas import menu_callback, menu_vkusochka_callback, \
-    inicialization_delivery_callback, basket_callback
+    inicialization_delivery_callback, basket_callback, restauranta_callback
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from test_parser import VkusnoITochka_parser
 
 
-def basket_back(client_id):
-    buttons_list = [
-            [
-                InlineKeyboardButton(text="Назад", callback_data=basket_callback.new(step="back"))
-            ]
-        ]
+def basket_back(client_id, client_username):
+    buttons_list = []
     with open('who_start_delivery.json', 'r', encoding='utf-8') as file:
         client_deliver = json.load(file)
         deliver_id = client_deliver['customer'][0]
-        if str(deliver_id) == str(client_id):
+        if str(deliver_id) == str(client_id) and client_deliver['is_deliver_start']:
             buttons_list.append([
                 InlineKeyboardButton(text="Сделать заказ и очистить корзину", callback_data=basket_callback.new(step="clear_basket"))
             ])
+        if client_deliver['is_deliver_start']:
+            with open('basket.json', 'r', encoding='utf-8') as file:
+                basket = json.load(file)
+                for people in basket:
+                    if people == client_username:
+                        buttons_list.append([InlineKeyboardButton(text="Очистить свою корзину", callback_data=basket_callback.new(step="clear_client_basket"))])
+                        buttons_list.append([InlineKeyboardButton(text="Редактировать свою корзину", callback_data=basket_callback.new(step="edit_basket"))])
+        buttons_list.append([InlineKeyboardButton(text="Назад", callback_data=basket_callback.new(step="back"))])
     return InlineKeyboardMarkup(inline_keyboard=buttons_list)
 
 
@@ -46,6 +50,17 @@ menu_keyboard = InlineKeyboardMarkup(
     ]
 )
 
+
+def choose_restaraunt_keyboard():
+    with open("restaurants.json", "r", encoding="utf-8") as file:
+        restaurants = json.load(file)
+    keyboard_data = []
+    for restaurant in restaurants['restaurants']:
+        keyboard_data.append([InlineKeyboardButton(text=f"{restaurant}", callback_data=restauranta_callback.new(choose=f"{restaurants['restaurants'].index(restaurant)}"))])
+    keyboard_data.append([InlineKeyboardButton(text='Назад', callback_data=restauranta_callback.new(choose='back'))])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard_data)
+
+
 inicialization_delivery = InlineKeyboardMarkup(
     inline_keyboard=[
         [
@@ -58,18 +73,26 @@ inicialization_delivery = InlineKeyboardMarkup(
 )
 
 
-def sets_by_restaraunt():
-    menu_vkusocka_kb = []
+def edit_basket_keyboard(user_name):
+    with open('basket.json', 'r', encoding='utf-8') as file:
+        basket = json.load(file)
+    keyboard_data = []
+    for client_food in basket[user_name]:
+        keyboard_data.append([InlineKeyboardButton(text=str(client_food[0] + " " + str(client_food[1][0]) + "р"), callback_data=basket_callback.new(step=basket[user_name].index(client_food)))])
+    keyboard_data.append([InlineKeyboardButton(text='Назад', callback_data=basket_callback.new(step='back'))])
+    return InlineKeyboardMarkup(inline_keyboard=keyboard_data)
 
+
+def sets_by_restaraunt(file):
+    menu_vkusocka_kb = []
     try:
-        last_modified = time.strftime("%Y-%m-%d", time.strptime(time.ctime(os.path.getmtime("Вкусно и точка.json"))))
+        last_modified = time.strftime("%Y-%m-%d", time.strptime(time.ctime(os.path.getmtime(f"{file}.json"))))
         if str(last_modified) != str(datetime.date.today()):         #проерка, если сегодня изменялся файл (парсился), то еще раз его парсить не надо
             VkusnoITochka_parser().get_vit_menu()
-
     except:
         VkusnoITochka_parser().get_vit_menu()
 
-    with open("Вкусно и точка.json", "r", encoding='utf-8') as file:
+    with open(f"{file}.json", "r", encoding='utf-8') as file:
         vkusochka_menu = json.load(file)
         for category in vkusochka_menu:
             if len(vkusochka_menu[category]) > 1 and category:
@@ -80,10 +103,10 @@ def sets_by_restaraunt():
         return menu_vkusocka_keyboard
 
 
-def food_by_category(data, page):
+def food_by_category(data, page, file):
     menu_vkusocka_in_kb = []
     step = int(page)
-    with open("Вкусно и точка.json", "r", encoding='utf-8') as file:
+    with open(f"{file}.json", "r", encoding='utf-8') as file:
         vkusochka_menu = json.load(file)
         for ct in vkusochka_menu:
             if str(vkusochka_menu[ct][0]) == str(data):
