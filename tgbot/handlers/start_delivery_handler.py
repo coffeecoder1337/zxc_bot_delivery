@@ -32,7 +32,7 @@ async def client_basket_edit(call: CallbackQuery, state: FSMContext):
 
 async def choose_restaraunt(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text("Выберите ресторан", reply_markup=choose_restaraunt_keyboard())
-    await state.set_state(MenuStateVkusochka.Q3)
+    await state.set_state(MenuStateVkusochka.Q4)
 
 
 async def choose_restaraunt_back(call: CallbackQuery, state: FSMContext):
@@ -42,17 +42,29 @@ async def choose_restaraunt_back(call: CallbackQuery, state: FSMContext):
 
 async def delete_from_basket(call: CallbackQuery, state: FSMContext):
     data = call.data
-    food = str(data).split(":")[1]
+    data1 = str(data).split(":")[1]
+    food = str(data1).split("/")[0]
+    restaurant = str(data1).split("/")[1]
     with open("basket.json", "r", encoding='utf-8') as file:
         basket = json.load(file)
     food_deleted = "Ничего не"
-    for item in basket[call.from_user.username]:
-        if str(item) == str(basket[call.from_user.username][int(food)]):
-            food_deleted = item[0]
-            basket[call.from_user.username].remove(item)
+    trigger = 0
+    for rest in basket[call.from_user.username]:
+        for item in basket[call.from_user.username][rest]:
+            print(str(basket[call.from_user.username][str(restaurant)]), int(food))
+            if str(item) == str(basket[call.from_user.username][str(restaurant)][int(food)]):
+                food_deleted = item[0]
+                basket[call.from_user.username][rest].remove(item)
+                trigger = 1
+                break
+        if basket[call.from_user.username][rest] == list():
+            basket[call.from_user.username].pop(rest)
+            break
+        if trigger == 1:
+            break
     with open("basket.json", "w", encoding='utf-8') as file:
         if call.from_user.username in basket.keys():
-            if basket[call.from_user.username] == list():
+            if basket[call.from_user.username] == dict():
                 basket.pop(call.from_user.username)
                 if basket.keys() == list():
                     basket = dict()
@@ -87,24 +99,39 @@ async def client_basket_clear(call: CallbackQuery, state: FSMContext):
 async def check_basket(call: CallbackQuery, state: FSMContext):
     with open('basket.json', 'r', encoding='utf-8') as f:
         basket = json.load(f)
-        f.close()
-        answer = ''
-        result = 0
-        for people in basket:
-            out_string = f'@{people}:\n'
-            summary = 0
-            for item in basket[people]:
+    answer = ''
+    result = 0
+    for people in basket:
+        out_string = f'@{people}:\n'
+        summary = 0
+        for restaurant in basket[people].keys():
+            out_string += "\nРесторан " + str(restaurant) + ": \n"
+            for item in basket[people][restaurant]:
                 summary += int(item[1][0])
                 out_string += str(item[0]) + " " + str(item[1][0]) + "\n"
-            answer += out_string + "============\n" + f"Итог: {summary} руб" + "\n\n"
-            result += summary
-        answer += "------------\n" + f"Всего: {result} руб"
+        answer += out_string + "============\n" + f"Итог: {summary} руб" + "\n\n"
+        result += summary
+    answer += "------------\n" + f"Всего: {result} руб"
     if answer != '':
         await call.message.edit_text(answer, reply_markup=basket_back(call.from_user.id, call.from_user.username))
         await state.set_state(Basket.W1)
 
 
 async def delivery_end(call: CallbackQuery, state: FSMContext):
+    with open('clients_summ_spend.json', 'r', encoding='utf-8') as file:
+        history = json.load(file)
+    with open('basket.json', 'r', encoding='utf-8') as file:
+        basket = json.load(file)
+    for people in basket:
+        sum = 0
+        for rest in basket[people]:
+            for item in basket[people][rest]:
+                sum += int(item[1][0])
+        if people not in history.keys():
+            history[people] = sum
+        history[people] = int(history[people]) + sum
+    with open('clients_summ_spend.json', 'w', encoding='utf-8') as file:
+        file.write(json.dumps(history, ensure_ascii=False))
     with open('who_start_delivery.json', 'r', encoding='utf-8') as file:
         deliver = json.load(file)
         deliver['customer'] = [000000000, ""]
@@ -189,7 +216,6 @@ async def make_delivery_restaraunts(call: CallbackQuery, state: FSMContext):
 async def delivery_restaraunts_category(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     file = data.get('file')
-    print(file)
     lenth = find_page(call.data.split(':')[1].strip(), file)
     await call.message.edit_text(f"Выебите блюдо)\nСтраница: {1}/{lenth}", reply_markup=food_by_category(call.data.split(':')[1].strip(), 0, file))
     await state.update_data(page=0)
@@ -246,8 +272,12 @@ async def add_to_basket(call: CallbackQuery, state: FSMContext):
                     if str(call.from_user.username) in basket_old.keys():
                         pass
                     else:
-                        basket_old[str(call.from_user.username)] = []
-                    basket_old[str(call.from_user.username)].append([item[0][1], re.findall(r'\d+', item[1])])
+                        basket_old[str(call.from_user.username)] = dict()
+                    if file_rest in basket_old[str(call.from_user.username)].keys() and basket_old[str(call.from_user.username)][file_rest] is not None:
+                        pass
+                    else:
+                        basket_old[str(call.from_user.username)][file_rest] = list()
+                    basket_old[str(call.from_user.username)][file_rest].append([item[0][1], re.findall(r'\d+', item[1])])
                     basket.write(json.dumps(basket_old, ensure_ascii=False))
                     await call.answer(text=f'{item[0][1]} добавлено в корзину', show_alert=True)
 
@@ -255,28 +285,25 @@ async def add_to_basket(call: CallbackQuery, state: FSMContext):
 async def delivery_restaraunts_category_back(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     file = data.get('file')
-    with open('who_start_delivery.json', 'r', encoding='utf-8') as f:
-        customer = json.load(f)
-        if customer["is_deliver_start"]:
-            if str(customer["customer"][0]) == str(call.from_user.id):
-                await call.message.edit_text(
-                    "Вы уже начали заказывать еду\nЗакройте заказ или добавьте блюда в общую карзину\nДоступные рестораны:",
-                    reply_markup=choose_restaraunt_keyboard())
-                await state.set_state(MenuStateVkusochka.Q4)
-            else:
-                await call.message.edit_text(
-                    f"@{customer['customer'][1]} уже начал заказывать еду\nВы можете добавить свои блюда\nДоступные рестораны:",
-                    reply_markup=choose_restaraunt_keyboard())
-                await state.set_state(MenuStateVkusochka.Q4)
-        else:
-            await call.message.edit_text("В данный момент никто не начал заказ. Вы хотите инициировать доставку?",
-                                         reply_markup=inicialization_delivery)
-            await state.set_state(MenuStateVkusochka.Q3)
+    await call.message.edit_text("Выбирай категорию нахуй", reply_markup=sets_by_restaraunt(file))
+    await state.set_state(MenuStateVkusochka.Q1)
 
 
 async def make_delivery_back(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text("Главное меню", reply_markup=menu_keyboard)
     await state.finish()
+
+
+async def show_spends(call: CallbackQuery):
+    with open('clients_summ_spend.json', 'r', encoding='utf-8') as file:
+        history = json.load(file)
+    trigger = 0
+    for clients in history:
+        if str(clients) == str(call.from_user.username):
+            trigger = 1
+            await call.answer(f"За все время вы заказали на {history[clients]} рублей!", show_alert=True)
+    if trigger == 0:
+        await call.answer("Пока что вы не завершали заказов через Бота", show_alert=True)
 
 
 async def delivery_start(call: CallbackQuery, state: FSMContext):
@@ -302,23 +329,24 @@ async def change_sub_status(call: CallbackQuery):
 
 def register_make_delivery(dp: Dispatcher):
     dp.register_callback_query_handler(change_sub_status, menu_callback.filter(choiсe="disconnect_me"), state=None)
-    dp.register_callback_query_handler(choose_restaraunt_back, restauranta_callback.filter(choose="back"), state=MenuStateVkusochka.Q3)
+    dp.register_callback_query_handler(show_spends, menu_callback.filter(choiсe="my_spend"), state=None)
+    dp.register_callback_query_handler(make_delivery_back, restauranta_callback.filter(choose="back"), state=MenuStateVkusochka.Q4)
     dp.register_callback_query_handler(make_delivery, menu_callback.filter(choiсe="start_delivery"), state=None)
-    dp.register_callback_query_handler(choose_category, basket_callback.filter(step="back"), state=Basket.W1)
+    dp.register_callback_query_handler(make_delivery_back, basket_callback.filter(step="back"), state=Basket.W1)
     dp.register_callback_query_handler(check_basket, basket_callback.filter(step="back"), state=Basket.W2)
     dp.register_callback_query_handler(make_delivery_restaraunts, inicialization_delivery_callback.filter(choiсe="inicialize"), state=MenuStateVkusochka.Q3)
     dp.register_callback_query_handler(dont_make_delivery_restaraunts, inicialization_delivery_callback.filter(choiсe="no_inicialize"), state=MenuStateVkusochka.Q3)
-    dp.register_callback_query_handler(delete_from_basket, state=Basket.W2)
-    dp.register_callback_query_handler(choose_restaraunt, state=MenuStateVkusochka.Q3)
     dp.register_callback_query_handler(delivery_end, basket_callback.filter(step="clear_basket"), state=Basket.W1)
     dp.register_callback_query_handler(client_basket_clear, basket_callback.filter(step="clear_client_basket"), state=Basket.W1)
     dp.register_callback_query_handler(client_basket_edit, basket_callback.filter(step="edit_basket"), state=Basket.W1)
     dp.register_callback_query_handler(check_basket, menu_callback.filter(choiсe="basket"), state=None)
-    dp.register_callback_query_handler(make_delivery_back, menu_vkusochka_callback.filter(category="back"), state=MenuStateVkusochka.Q1)
-    dp.register_callback_query_handler(delivery_restaraunts_category_back, menu_vkusochka_callback.filter(category="back"), state=MenuStateVkusochka.Q2)
+    dp.register_callback_query_handler(choose_restaraunt, menu_vkusochka_callback.filter(category="back_to_restaurants"), state=MenuStateVkusochka.Q1)
+    dp.register_callback_query_handler(delivery_restaraunts_category_back, menu_vkusochka_callback.filter(category="back_to_sets"), state=MenuStateVkusochka.Q2)
     dp.register_callback_query_handler(delivery_restaraunts_category_left, menu_vkusochka_callback.filter(category="chel_peremestilsya_vlevo"), state=MenuStateVkusochka.Q2)
     dp.register_callback_query_handler(delivery_restaraunts_category_right, menu_vkusochka_callback.filter(category="chel_peremestilsya_vpravo"), state=MenuStateVkusochka.Q2)
     dp.register_callback_query_handler(add_to_basket, state=MenuStateVkusochka.Q2)
     dp.register_callback_query_handler(delivery_restaraunts_category, state=MenuStateVkusochka.Q1)
     dp.register_callback_query_handler(choose_category, state=MenuStateVkusochka.Q4)
+    dp.register_callback_query_handler(delete_from_basket, state=Basket.W2)
+    dp.register_callback_query_handler(choose_restaraunt, state=MenuStateVkusochka.Q3)
 

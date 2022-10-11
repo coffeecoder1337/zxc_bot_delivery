@@ -77,8 +77,9 @@ def edit_basket_keyboard(user_name):
     with open('basket.json', 'r', encoding='utf-8') as file:
         basket = json.load(file)
     keyboard_data = []
-    for client_food in basket[user_name]:
-        keyboard_data.append([InlineKeyboardButton(text=str(client_food[0] + " " + str(client_food[1][0]) + "р"), callback_data=basket_callback.new(step=basket[user_name].index(client_food)))])
+    for rest in basket[user_name]:
+        for client_food in basket[user_name][rest]:
+            keyboard_data.append([InlineKeyboardButton(text=str(client_food[0] + " " + str(client_food[1][0]) + "р"), callback_data=basket_callback.new(step=str(basket[user_name][rest].index(client_food)) + "/" + str(rest)))])
     keyboard_data.append([InlineKeyboardButton(text='Назад', callback_data=basket_callback.new(step='back'))])
     return InlineKeyboardMarkup(inline_keyboard=keyboard_data)
 
@@ -103,7 +104,7 @@ def sets_by_restaraunt(file):
             if len(vkusochka_menu[category]) > 1 and category:
                 menu_vkusocka_kb.append([InlineKeyboardButton(text=category, callback_data=menu_vkusochka_callback.new(category=vkusochka_menu[category][0]))])
         menu_vkusocka_keyboard = InlineKeyboardMarkup(inline_keyboard=menu_vkusocka_kb)
-        back_button = InlineKeyboardButton(text="Назад", callback_data=menu_vkusochka_callback.new(category="back"))
+        back_button = InlineKeyboardButton(text="Назад", callback_data=menu_vkusochka_callback.new(category="back_to_restaurants"))
         menu_vkusocka_keyboard.insert(back_button)
         return menu_vkusocka_keyboard
 
@@ -119,7 +120,7 @@ def food_by_category(data, page, file):
         for zxc in vkusochka_menu[category][1::][step]:
             menu_vkusocka_in_kb.append([InlineKeyboardButton(text=f'{zxc[0][1]} {zxc[1]}', callback_data=menu_vkusochka_callback.new(category=zxc[0][0]))])
         left_button = InlineKeyboardButton(text="←", callback_data=menu_vkusochka_callback.new(category="chel_peremestilsya_vlevo"))
-        back_button = InlineKeyboardButton(text="Назад", callback_data=menu_vkusochka_callback.new(category="back"))
+        back_button = InlineKeyboardButton(text="Назад", callback_data=menu_vkusochka_callback.new(category="back_to_sets"))
         right_button = InlineKeyboardButton(text="→", callback_data=menu_vkusochka_callback.new(category="chel_peremestilsya_vpravo"))
         last_button = [left_button, back_button, right_button]
         menu_vkusocka_in_kb.append(last_button)
