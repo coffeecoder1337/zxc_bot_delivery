@@ -20,7 +20,7 @@ async def delivery_start(message: Message, state: FSMContext):
             with open('subscription.json', 'w', encoding='utf-8') as f:
                 f.write(json.dumps(all_subs, ensure_ascii=False))
     await state.finish()
-    await message.answer("Приветик)\nГлавное меню", reply_markup=menu_keyboard)
+    await message.answer("🧾 Главное меню 🧾", reply_markup=menu_keyboard(message.from_id))
 
 
 def register_delivery_start(dp: Dispatcher):

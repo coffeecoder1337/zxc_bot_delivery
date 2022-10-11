@@ -27,16 +27,16 @@ def find_page(category, file):
 
 async def client_basket_edit(call: CallbackQuery, state: FSMContext):
     await state.set_state(Basket.W2)
-    await call.message.edit_text("Выберите блюдо, которое хотите удалить", reply_markup=edit_basket_keyboard(call.from_user.username))
+    await call.message.edit_text("⛔ Выберите блюдо, которое хотите удалить ⛔", reply_markup=edit_basket_keyboard(call.from_user.username))
 
 
 async def choose_restaraunt(call: CallbackQuery, state: FSMContext):
-    await call.message.edit_text("Выберите ресторан", reply_markup=choose_restaraunt_keyboard())
+    await call.message.edit_text("🏮 Выберите ресторан 🏮", reply_markup=choose_restaraunt_keyboard())
     await state.set_state(MenuStateVkusochka.Q4)
 
 
 async def choose_restaraunt_back(call: CallbackQuery, state: FSMContext):
-    await call.message.edit_text("Главное меню", reply_markup=menu_keyboard)
+    await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
     await state.finish()
 
 
@@ -69,16 +69,16 @@ async def delete_from_basket(call: CallbackQuery, state: FSMContext):
                 if basket.keys() == list():
                     basket = dict()
                 file.write(json.dumps(basket, ensure_ascii=False))
-                await call.answer(text=f"{food_deleted} было удалено из вашей корзины\nВаша корзина пустая\nВы возвращены в меню", show_alert=True)
-                await call.message.edit_text("Главное меню", reply_markup=menu_keyboard)
+                await call.answer(text=f"❗ {food_deleted} было удалено из вашей корзины.\nВаша корзина пустая.\nВы возвращены в меню.", show_alert=True)
+                await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
                 await state.finish()
                 return
             file.write(json.dumps(basket, ensure_ascii=False))
             file.close()
-            await call.answer(text=f"{food_deleted} было удалено из вашей корзины", show_alert=True)
-            await call.message.edit_text("Выберите блюдо, которое хотите удалить", reply_markup=edit_basket_keyboard(call.from_user.username))
+            await call.answer(text=f"❗ {food_deleted} было удалено из вашей корзины!", show_alert=True)
+            await call.message.edit_text("Выберите блюдо, которое хотите удалить:", reply_markup=edit_basket_keyboard(call.from_user.username))
         else:
-            await call.message.edit_text("Главное меню", reply_markup=menu_keyboard)
+            await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
             await state.finish()
 
 
@@ -91,8 +91,8 @@ async def client_basket_clear(call: CallbackQuery, state: FSMContext):
                 break
     with open('basket.json', 'w', encoding='utf-8') as file:
         file.write(json.dumps(basket, ensure_ascii=False))
-    await call.answer(text="Ваша корзина была очищена!", show_alert=True)
-    await call.message.edit_text("Главное меню", reply_markup=menu_keyboard)
+    await call.answer(text="❗ Ваша корзина была очищена", show_alert=True)
+    await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
     await state.finish()
 
 
@@ -140,13 +140,13 @@ async def delivery_end(call: CallbackQuery, state: FSMContext):
         file.write(json.dumps(deliver, ensure_ascii=False))
     with open('basket.json', 'w', encoding='utf-8') as file:
         file.write(json.dumps(dict(), ensure_ascii=False))
-    await call.answer(text="Корзина очищена!", show_alert=True)
-    await call.message.edit_text("Главное меню", reply_markup=menu_keyboard)
+    await call.answer(text="❗ Корзина очищена", show_alert=True)
+    await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
     with open('subscription.json', 'r', encoding='utf-8') as file:
         subscribers = json.load(file)
         for subscriber in subscribers:
             if subscribers[subscriber] and str(subscriber) != str(call.from_user.id):
-                await call.bot.send_message(chat_id=str(subscriber), text=f"@{call.from_user.username} заказал еду, корзина закрыта.")
+                await call.bot.send_message(chat_id=str(subscriber), text=f"❗ @{call.from_user.username} заказал еду, корзина закрыта.")
     await state.finish()
 
 
@@ -164,16 +164,16 @@ async def make_delivery(call: CallbackQuery, state: FSMContext):
         if customer["is_deliver_start"]:
             if str(customer["customer"][0]) == str(call.from_user.id):
                 await call.message.edit_text(
-                    "Вы уже начали заказывать еду\nЗакройте заказ или добавьте блюда в общую карзину\nДоступные рестораны:",
+                    "Вы уже начали заказывать еду.\nЗакройте заказ или добавьте блюда в общую карзину.\n🏮 Доступные рестораны 🏮",
                     reply_markup=choose_restaraunt_keyboard())
                 await state.set_state(MenuStateVkusochka.Q4)
             else:
                 await call.message.edit_text(
-                    f"@{customer['customer'][1]} уже начал заказывать еду\nВы можете добавить свои блюда\nДоступные рестораны:",
+                    f"@{customer['customer'][1]} уже начал заказывать еду.\nВы можете добавить свои блюда.\n🏮 Доступные рестораны 🏮",
                     reply_markup=choose_restaraunt_keyboard())
                 await state.set_state(MenuStateVkusochka.Q4)
         else:
-            await call.message.edit_text("В данный момент никто не начал заказ. Вы хотите инициировать доставку?", reply_markup=inicialization_delivery)
+            await call.message.edit_text("В данный момент никто не начал заказ.\nВы хотите инициировать доставку?", reply_markup=inicialization_delivery)
             await state.set_state(MenuStateVkusochka.Q3)
 
 
@@ -184,12 +184,12 @@ async def choose_category(call: CallbackQuery, state: FSMContext):
     file = restaurants['restaurants'][int(restaurant_id)]
     await state.update_data(file=file)
     await call.message.edit_text("Загружаю категории...\nПридется подождать, этот процесс необходим раз в сутки")
-    await call.message.edit_text("Выбирай категорию нахуй", reply_markup=sets_by_restaraunt(file))
+    await call.message.edit_text("🍔 Выберите категорию 🍔", reply_markup=sets_by_restaraunt(file))
     await state.set_state(MenuStateVkusochka.Q1)
 
 
 async def dont_make_delivery_restaraunts(call: CallbackQuery, state: FSMContext):
-    await call.message.edit_text("Вам придет уведомление, если кто-то начнет доставку", reply_markup=menu_keyboard)
+    await call.message.edit_text("Вам придет уведомление, если кто-то начнет доставку.", reply_markup=menu_keyboard(call.from_user.id))
     await state.finish()
 
 
@@ -198,9 +198,9 @@ async def make_delivery_restaraunts(call: CallbackQuery, state: FSMContext):
         all_subs = json.load(file)
         for sub in all_subs:
             if str(sub) != str(call.from_user.id) and all_subs[sub]:
-                await call.bot.send_message(chat_id=str(sub), text="Кто-то решил заказать еду.\nУспейте добавить свое блюдо в общую карзину.")
+                await call.bot.send_message(chat_id=str(sub), text="🚨 Кто-то решил заказать еду 🚨\nУспейте добавить свое блюдо в общую карзину!")
             elif str(sub) == str(call.from_user.id):
-                await call.answer(text="Вы инициировали доставку!", show_alert=True)
+                await call.answer(text="❗ Вы инициировали доставку", show_alert=True)
     with open('who_start_delivery.json', 'w', encoding='utf-8') as f:
         customer = dict()
         customer["customer"] = [call.from_user.id, call.from_user.username]
@@ -209,7 +209,7 @@ async def make_delivery_restaraunts(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text(
         "Загружаю доступные рестораны...",
         reply_markup=None)
-    await call.message.edit_text("Выберите ресторан", reply_markup=choose_restaraunt_keyboard())
+    await call.message.edit_text("🏮 Выберите ресторан 🏮", reply_markup=choose_restaraunt_keyboard())
     await state.set_state(MenuStateVkusochka.Q4)
 
 
@@ -217,7 +217,7 @@ async def delivery_restaraunts_category(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     file = data.get('file')
     lenth = find_page(call.data.split(':')[1].strip(), file)
-    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {1}/{lenth}", reply_markup=food_by_category(call.data.split(':')[1].strip(), 0, file))
+    await call.message.edit_text(f"🍩 Выберите блюдо 🍩\nСтраница: {1}/{lenth}", reply_markup=food_by_category(call.data.split(':')[1].strip(), 0, file))
     await state.update_data(page=0)
     await state.update_data(category=call.data.split(':')[1].strip())
     await state.set_state(MenuStateVkusochka.Q2)
@@ -234,7 +234,7 @@ async def delivery_restaraunts_category_left(call: CallbackQuery, state: FSMCont
     else:
         page = lenth - 1
     await state.update_data(page=page)
-    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {page+1}/{lenth}", reply_markup=food_by_category(data=category, page=page, file=file))
+    await call.message.edit_text(f"🍩 Выберите блюдо 🍩\nСтраница: {page+1}/{lenth}", reply_markup=food_by_category(data=category, page=page, file=file))
 
 
 async def delivery_restaraunts_category_right(call: CallbackQuery, state: FSMContext):
@@ -248,7 +248,7 @@ async def delivery_restaraunts_category_right(call: CallbackQuery, state: FSMCon
     else:
         page += 1
     await state.update_data(page=page)
-    await call.message.edit_text(f"Выебите блюдо)\nСтраница: {page+1}/{lenth}", reply_markup=food_by_category(data=category, page=page, file=file))
+    await call.message.edit_text(f"🍩 Выберите блюдо 🍩\nСтраница: {page+1}/{lenth}", reply_markup=food_by_category(data=category, page=page, file=file))
 
 
 async def add_to_basket(call: CallbackQuery, state: FSMContext):
@@ -279,18 +279,18 @@ async def add_to_basket(call: CallbackQuery, state: FSMContext):
                         basket_old[str(call.from_user.username)][file_rest] = list()
                     basket_old[str(call.from_user.username)][file_rest].append([item[0][1], re.findall(r'\d+', item[1])])
                     basket.write(json.dumps(basket_old, ensure_ascii=False))
-                    await call.answer(text=f'{item[0][1]} добавлено в корзину', show_alert=True)
+                    await call.answer(text=f'{item[0][1]} добавлено в корзину.', show_alert=True)
 
 
 async def delivery_restaraunts_category_back(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     file = data.get('file')
-    await call.message.edit_text("Выбирай категорию нахуй", reply_markup=sets_by_restaraunt(file))
+    await call.message.edit_text("🍔 Выберите категорию 🍔", reply_markup=sets_by_restaraunt(file))
     await state.set_state(MenuStateVkusochka.Q1)
 
 
 async def make_delivery_back(call: CallbackQuery, state: FSMContext):
-    await call.message.edit_text("Главное меню", reply_markup=menu_keyboard)
+    await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
     await state.finish()
 
 
@@ -301,13 +301,13 @@ async def show_spends(call: CallbackQuery):
     for clients in history:
         if str(clients) == str(call.from_user.username):
             trigger = 1
-            await call.answer(f"За все время вы заказали на {history[clients]} рублей!", show_alert=True)
+            await call.answer(f"💰 За все время вы заказали на {history[clients]} рублей! 💰", show_alert=True)
     if trigger == 0:
-        await call.answer("Пока что вы не завершали заказов через Бота", show_alert=True)
+        await call.answer("Пока что вы не завершали заказы через Бота.", show_alert=True)
 
 
 async def delivery_start(call: CallbackQuery, state: FSMContext):
-    await call.message.edit_text("Главное меню", reply_markup=menu_keyboard)
+    await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
     await state.finish()
 
 
@@ -319,12 +319,13 @@ async def change_sub_status(call: CallbackQuery):
             if str(subscriber) == str(call.from_user.id):
                 if subscribers[subscriber]:
                     subscribers[subscriber] = False
-                    await call.answer(text="Подписка отключена", show_alert=True)
+                    await call.answer(text="❗ Подписка отключена.", show_alert=True)
                 else:
                     subscribers[subscriber] = True
-                    await call.answer(text="Подписка подключена", show_alert=True)
+                    await call.answer(text="❗ Подписка подключена.", show_alert=True)
                 with open("subscription.json", "w", encoding='utf-8') as file:
                     json.dump(subscribers, file, ensure_ascii=False)
+                await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
 
 
 def register_make_delivery(dp: Dispatcher):
