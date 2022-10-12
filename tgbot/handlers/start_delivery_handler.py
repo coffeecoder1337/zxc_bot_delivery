@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 import time
@@ -297,6 +298,7 @@ async def make_delivery_restaraunts(call: CallbackQuery, state: FSMContext):
             reply_markup=None)
         await call.message.edit_text("🏮 Выберите ресторан 🏮", reply_markup=choose_restaraunt_keyboard())
         await state.set_state(MenuStateVkusochka.Q4)
+
 
 
 async def delivery_restaraunts_category(call: CallbackQuery, state: FSMContext):
