@@ -85,6 +85,7 @@ class VkusnoITochka_parser:
 
 	def parse_online_restaurants(self):
 		restaurants_titles = {"restaurants": [restaurant[1] for restaurant in self.get_restaurants_links_and_titles()]}
+		restaurants_titles["restaurants"].append('Вкусно и точка')
 		with open("restaurants.json", "w", encoding='utf-8') as f:
 			f.write(json.dumps(restaurants_titles, ensure_ascii=False))
 

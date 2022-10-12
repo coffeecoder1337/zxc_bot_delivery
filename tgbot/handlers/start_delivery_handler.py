@@ -1,6 +1,14 @@
 import asyncio
 import json
 import re
+import time
+import threading
+import asyncio
+
+###
+from aiogram import Bot
+from tgbot.config import load_config
+###
 
 from aiogram import Dispatcher
 from aiogram.types import CallbackQuery
@@ -14,6 +22,28 @@ from tgbot.keyboards.inline.menu_buttons import inicialization_delivery, sets_by
 
 from tgbot.keyboards.inline.callback_datas import inicialization_delivery_callback
 from tgbot.misc.states import MenuStateVkusochka, Basket
+
+
+###
+config = load_config(".env")
+bot = Bot(token=config.tg_bot.token, parse_mode='HTML') 
+###
+
+
+def notification_timer():
+    timer_end = 1 * 60
+    while True:
+        with open('who_start_delivery.json', 'r', encoding='utf-8') as f:
+            deliver = json.load(f)
+            time_start = deliver['time_start']
+
+        if time_start == -1:
+            break
+
+        if time.time() - time_start > timer_end:
+            asyncio.run(bot.send_message(chat_id=str(deliver['customer'][0]), text="Не забудьте завершить заказ)")) # send message
+            break
+        time.sleep(1)
 
 
 def find_page(category, file):
@@ -106,10 +136,12 @@ async def check_basket(call: CallbackQuery, state: FSMContext):
         out_string = f'@{people}:\n'
         summary = 0
         for restaurant in basket[people].keys():
-            out_string += "\nРесторан " + str(restaurant) + ": \n"
-            for item in basket[people][restaurant]:
-                summary += int(item[1][0])
-                out_string += str(item[0]) + " " + str(item[1][0]) + "\n"
+            if restaurant != 'id':
+                out_string += "\nРесторан " + str(restaurant) + ": \n"
+                if type(basket[people][restaurant]) != int:
+                    for item in basket[people][restaurant]:
+                        summary += int(item[1][0])
+                        out_string += str(item[0]) + " " + str(item[1][0]) + "\n"
         answer += out_string + "============\n" + f"Итог: {summary} руб" + "\n\n"
         result += summary
     answer += "------------\n" + f"Всего: {result} руб"
@@ -119,35 +151,56 @@ async def check_basket(call: CallbackQuery, state: FSMContext):
 
 
 async def delivery_end(call: CallbackQuery, state: FSMContext):
+
     with open('clients_summ_spend.json', 'r', encoding='utf-8') as file:
         history = json.load(file)
     with open('basket.json', 'r', encoding='utf-8') as file:
         basket = json.load(file)
-    for people in basket:
-        sum = 0
-        for rest in basket[people]:
-            for item in basket[people][rest]:
-                sum += int(item[1][0])
-        if people not in history.keys():
-            history[people] = sum
-        history[people] = int(history[people]) + sum
+
     with open('clients_summ_spend.json', 'w', encoding='utf-8') as file:
         file.write(json.dumps(history, ensure_ascii=False))
     with open('who_start_delivery.json', 'r', encoding='utf-8') as file:
         deliver = json.load(file)
-        deliver['customer'] = [000000000, ""]
-        deliver['is_deliver_start'] = False
+        file.close()
+
+
+    deliver_message = "Чек:"
+    all_sum = 0
+    for people in basket:
+        s = 0
+        for rest in basket[people]:
+            if type(basket[people][rest]) != int:
+                for item in basket[people][rest]:
+                    s += int(item[1][0])
+        all_sum += s
+        if people not in history.keys():
+            history[people] = s
+        history[people] = int(history[people]) + s
+        if basket[people]['id'] != deliver['customer'][0]:
+            message = f"Заказ завершен, не забудьте перевести {s} рублев @{deliver['customer'][1]}"
+            await call.bot.send_message(chat_id=basket[people]['id'], text=message)
+        else:
+            deliver_message += f"\n@{people} {s} рублев"
+    deliver_message += f"\nИтого: {all_sum}"
+
+    deliver['customer'] = [000000000, ""]
+    deliver['is_deliver_start'] = False
+    deliver['time_start'] = -1 # stop thread
+
     with open('who_start_delivery.json', 'w', encoding='utf-8') as file:
         file.write(json.dumps(deliver, ensure_ascii=False))
+        file.close()
     with open('basket.json', 'w', encoding='utf-8') as file:
         file.write(json.dumps(dict(), ensure_ascii=False))
-    await call.answer(text="❗ Корзина очищена", show_alert=True)
+
+
     await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
-    with open('subscription.json', 'r', encoding='utf-8') as file:
-        subscribers = json.load(file)
-        for subscriber in subscribers:
-            if subscribers[subscriber] and str(subscriber) != str(call.from_user.id):
-                await call.bot.send_message(chat_id=str(subscriber), text=f"❗ @{call.from_user.username} заказал еду, корзина закрыта.")
+    await call.message.answer(text=deliver_message)
+    # with open('subscription.json', 'r', encoding='utf-8') as file:
+    #     subscribers = json.load(file)
+    #     for subscriber in subscribers:
+    #         if subscribers[subscriber] and str(subscriber) != str(call.from_user.id):
+    #             await call.bot.send_message(chat_id=str(subscriber), text=f"❗ @{call.from_user.username} заказал еду, корзина закрыта.")
     await state.finish()
 
 
@@ -188,7 +241,6 @@ async def choose_category(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text("🍔 Выберите категорию 🍔", reply_markup=sets_by_restaraunt(file))
     await state.set_state(MenuStateVkusochka.Q1)
 
-
 async def dont_make_delivery_restaraunts(call: CallbackQuery, state: FSMContext):
     await call.message.edit_text("Вам придет уведомление, если кто-то начнет доставку.", reply_markup=menu_keyboard(call.from_user.id))
     await state.finish()
@@ -201,11 +253,19 @@ async def make_delivery_restaraunts(call: CallbackQuery, state: FSMContext):
             if str(sub) != str(call.from_user.id) and all_subs[sub]:
                 await call.bot.send_message(chat_id=str(sub), text="🚨 Кто-то решил заказать еду 🚨\nУспейте добавить свое блюдо в общую карзину!")
             elif str(sub) == str(call.from_user.id):
+                
                 await call.answer(text="❗ Вы инициировали доставку", show_alert=True)
+                # timer
+
+                
     with open('who_start_delivery.json', 'w', encoding='utf-8') as f:
         customer = dict()
         customer["customer"] = [call.from_user.id, call.from_user.username]
         customer["is_deliver_start"] = True
+        customer["time_start"] = time.time()
+        timer_thread = threading.Thread(target=notification_timer)
+        timer_thread.start() # start thread
+
         json.dump(customer, f, ensure_ascii=False)
     await call.message.edit_text(
         "Загружаю доступные рестораны...",
@@ -280,6 +340,7 @@ async def add_to_basket(call: CallbackQuery, state: FSMContext):
                     else:
                         basket_old[str(call.from_user.username)][file_rest] = list()
                     basket_old[str(call.from_user.username)][file_rest].append([item[0][1], re.findall(r'\d+', item[1])])
+                    basket_old[str(call.from_user.username)]['id'] = call.from_user.id
                     basket.write(json.dumps(basket_old, ensure_ascii=False))
                     await call.answer(text=f'{item[0][1]} добавлено в корзину.', show_alert=True)
 
