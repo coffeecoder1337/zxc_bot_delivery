@@ -29,8 +29,14 @@ bot = Bot(token=config.tg_bot.token, parse_mode='HTML')
 ###
 
 
+def is_deliver_started():
+    with open('who_start_delivery.json', 'r', encoding='utf-8') as f:
+        deliver = json.load(f)
+    return deliver['is_deliver_start']
+
+
 def notification_timer():
-    timer_end = 1 * 60
+    timer_end = 15 * 60
     while True:
         with open('who_start_delivery.json', 'r', encoding='utf-8') as f:
             deliver = json.load(f)
@@ -56,13 +62,23 @@ def find_page(category, file):
 
 
 async def client_basket_edit(call: CallbackQuery, state: FSMContext):
-    await state.set_state(Basket.W2)
-    await call.message.edit_text("⛔ Выберите блюдо, которое хотите удалить ⛔", reply_markup=edit_basket_keyboard(call.from_user.username))
+    if is_deliver_started():
+        await state.set_state(Basket.W2)
+        await call.message.edit_text("⛔ Выберите блюдо, которое хотите удалить ⛔", reply_markup=edit_basket_keyboard(call.from_user.username))
+    else:
+        await call.answer(text="❗ Доставка была завершена, корзина закрыта.", show_alert=True)
+        await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
+        await state.finish()
 
 
 async def choose_restaraunt(call: CallbackQuery, state: FSMContext):
-    await call.message.edit_text("🏮 Выберите ресторан 🏮", reply_markup=choose_restaraunt_keyboard())
-    await state.set_state(MenuStateVkusochka.Q4)
+    if is_deliver_started():
+        await call.message.edit_text("🏮 Выберите ресторан 🏮", reply_markup=choose_restaraunt_keyboard())
+        await state.set_state(MenuStateVkusochka.Q4)
+    else:
+        await call.answer(text="❗ Доставка была завершена, корзина закрыта.", show_alert=True)
+        await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
+        await state.finish()
 
 
 async def choose_restaraunt_back(call: CallbackQuery, state: FSMContext):
@@ -71,45 +87,50 @@ async def choose_restaraunt_back(call: CallbackQuery, state: FSMContext):
 
 
 async def delete_from_basket(call: CallbackQuery, state: FSMContext):
-    data = call.data
-    data1 = str(data).split(":")[1]
-    food = str(data1).split("/")[0]
-    restaurant = str(data1).split("/")[1]
-    with open("basket.json", "r", encoding='utf-8') as file:
-        basket = json.load(file)
-    food_deleted = "Ничего не"
-    trigger = 0
-    for rest in basket[call.from_user.username]:
-        for item in basket[call.from_user.username][rest]:
-            print(str(basket[call.from_user.username][str(restaurant)]), int(food))
-            if str(item) == str(basket[call.from_user.username][str(restaurant)][int(food)]):
-                food_deleted = item[0]
-                basket[call.from_user.username][rest].remove(item)
-                trigger = 1
-                break
-        if basket[call.from_user.username][rest] == list():
-            basket[call.from_user.username].pop(rest)
-            break
-        if trigger == 1:
-            break
-    with open("basket.json", "w", encoding='utf-8') as file:
-        if call.from_user.username in basket.keys():
-            if basket[call.from_user.username] == dict():
-                basket.pop(call.from_user.username)
-                if basket.keys() == list():
-                    basket = dict()
+    if is_deliver_started():
+        data = call.data
+        data1 = str(data).split(":")[1]
+        food = str(data1).split("/")[0]
+        restaurant = str(data1).split("/")[1]
+        with open("basket.json", "r", encoding='utf-8') as file:
+            basket = json.load(file)
+        food_deleted = "Ничего не"
+        trigger = 0
+        for rest in basket[call.from_user.username].keys():
+            if str(rest) != 'id':
+                for item in basket[call.from_user.username][rest]:
+                    if str(item) == str(basket[call.from_user.username][str(restaurant)][int(food)]):
+                        food_deleted = item[0]
+                        basket[call.from_user.username][rest].remove(item)
+                        trigger = 1
+                        break
+                if basket[call.from_user.username][rest] == list():
+                    basket[call.from_user.username].pop(rest)
+                    break
+                if trigger == 1:
+                    break
+        with open("basket.json", "w", encoding='utf-8') as file:
+            if call.from_user.username in basket.keys():
+                if len(basket[call.from_user.username].keys()) == 1:
+                    basket.pop(call.from_user.username)
+                    if basket.keys() == list():
+                        basket = dict()
+                    file.write(json.dumps(basket, ensure_ascii=False))
+                    await call.answer(text=f"❗ {food_deleted} было удалено из вашей корзины.\nВаша корзина пустая.\nВы возвращены в меню.", show_alert=True)
+                    await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
+                    await state.finish()
+                    return
                 file.write(json.dumps(basket, ensure_ascii=False))
-                await call.answer(text=f"❗ {food_deleted} было удалено из вашей корзины.\nВаша корзина пустая.\nВы возвращены в меню.", show_alert=True)
+                file.close()
+                await call.answer(text=f"❗ {food_deleted} было удалено из вашей корзины!", show_alert=True)
+                await call.message.edit_text("Выберите блюдо, которое хотите удалить:", reply_markup=edit_basket_keyboard(call.from_user.username))
+            else:
                 await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
                 await state.finish()
-                return
-            file.write(json.dumps(basket, ensure_ascii=False))
-            file.close()
-            await call.answer(text=f"❗ {food_deleted} было удалено из вашей корзины!", show_alert=True)
-            await call.message.edit_text("Выберите блюдо, которое хотите удалить:", reply_markup=edit_basket_keyboard(call.from_user.username))
-        else:
-            await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
-            await state.finish()
+    else:
+        await call.answer(text="❗ Доставка была завершена, корзина закрыта.", show_alert=True)
+        await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
+        await state.finish()
 
 
 async def client_basket_clear(call: CallbackQuery, state: FSMContext):
@@ -126,7 +147,7 @@ async def client_basket_clear(call: CallbackQuery, state: FSMContext):
     await state.finish()
 
 
-async def check_basket(call: CallbackQuery, state: FSMContext):
+def make_basket_message():
     with open('basket.json', 'r', encoding='utf-8') as f:
         basket = json.load(f)
     answer = ''
@@ -144,6 +165,11 @@ async def check_basket(call: CallbackQuery, state: FSMContext):
         answer += out_string + "============\n" + f"Итог: {summary} руб" + "\n\n"
         result += summary
     answer += "------------\n" + f"Всего: {result} руб"
+    return answer
+
+
+async def check_basket(call: CallbackQuery, state: FSMContext):
+    answer = make_basket_message()
     if answer != '':
         await call.message.edit_text(answer, reply_markup=basket_back(call.from_user.id, call.from_user.username))
         await state.set_state(Basket.W1)
@@ -163,7 +189,6 @@ async def delivery_end(call: CallbackQuery, state: FSMContext):
         file.close()
 
 
-    deliver_message = "Чек:"
     all_sum = 0
     for people in basket:
         s = 0
@@ -176,11 +201,13 @@ async def delivery_end(call: CallbackQuery, state: FSMContext):
             history[people] = s
         history[people] = int(history[people]) + s
         if basket[people]['id'] != deliver['customer'][0]:
-            message = f"Заказ завершен, не забудьте перевести {s} рублев @{deliver['customer'][1]}"
+            message = f"Заказ завершен, не забудьте перевести {s} рублей @{deliver['customer'][1]}"
             await call.bot.send_message(chat_id=basket[people]['id'], text=message)
-        else:
-            deliver_message += f"\n@{people} {s} рублев"
-    deliver_message += f"\nИтого: {all_sum}"
+
+
+    msg = 'Список еды для заказа:\n'
+    msg += make_basket_message()
+    await call.bot.send_message(chat_id=deliver['customer'][0], text=msg)
 
     deliver['customer'] = [000000000, ""]
     deliver['is_deliver_start'] = False
@@ -192,15 +219,9 @@ async def delivery_end(call: CallbackQuery, state: FSMContext):
     with open('basket.json', 'w', encoding='utf-8') as file:
         file.write(json.dumps(dict(), ensure_ascii=False))
 
-
     await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
-    await call.message.answer(text=deliver_message)
-    # with open('subscription.json', 'r', encoding='utf-8') as file:
-    #     subscribers = json.load(file)
-    #     for subscriber in subscribers:
-    #         if subscribers[subscriber] and str(subscriber) != str(call.from_user.id):
-    #             await call.bot.send_message(chat_id=str(subscriber), text=f"❗ @{call.from_user.username} заказал еду, корзина закрыта.")
     await state.finish()
+
 
 
 async def make_delivery(call: CallbackQuery, state: FSMContext):
@@ -246,108 +267,138 @@ async def dont_make_delivery_restaraunts(call: CallbackQuery, state: FSMContext)
 
 
 async def make_delivery_restaraunts(call: CallbackQuery, state: FSMContext):
-    with open("subscription.json", "r", encoding='utf-8') as file:
-        all_subs = json.load(file)
-        for sub in all_subs:
-            if str(sub) != str(call.from_user.id) and all_subs[sub]:
-                await call.bot.send_message(chat_id=str(sub), text="🚨 Кто-то решил заказать еду 🚨\nУспейте добавить свое блюдо в общую карзину!")
-            elif str(sub) == str(call.from_user.id):
-                
-                await call.answer(text="❗ Вы инициировали доставку", show_alert=True)
-                # timer
+    with open('who_start_delivery.json', 'r', encoding='utf-8') as f:
+        deliver = json.load(f)
+    if deliver['is_deliver_start']:
+         await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
+         await state.finish()
+    else:
+        with open("subscription.json", "r", encoding='utf-8') as file:
+            all_subs = json.load(file)
+            for sub in all_subs:
+                if str(sub) != str(call.from_user.id) and all_subs[sub]:
+                    await call.bot.send_message(chat_id=str(sub), text="🚨 Кто-то решил заказать еду 🚨\nУспейте добавить свое блюдо в общую карзину!")
+                elif str(sub) == str(call.from_user.id):
+                    
+                    await call.answer(text="❗ Вы инициировали доставку", show_alert=True)
+                    # timer
+ 
+        with open('who_start_delivery.json', 'w', encoding='utf-8') as f:
+            customer = dict()
+            customer["customer"] = [call.from_user.id, call.from_user.username]
+            customer["is_deliver_start"] = True
+            customer["time_start"] = time.time()
+            timer_thread = threading.Thread(target=notification_timer)
+            timer_thread.start() # start thread
 
-                
-    with open('who_start_delivery.json', 'w', encoding='utf-8') as f:
-        customer = dict()
-        customer["customer"] = [call.from_user.id, call.from_user.username]
-        customer["is_deliver_start"] = True
-        customer["time_start"] = time.time()
-        timer_thread = threading.Thread(target=notification_timer)
-        timer_thread.start() # start thread
-
-        json.dump(customer, f, ensure_ascii=False)
-    await call.message.edit_text(
-        "Загружаю доступные рестораны...",
-        reply_markup=None)
-    await call.message.edit_text("🏮 Выберите ресторан 🏮", reply_markup=choose_restaraunt_keyboard())
-    await state.set_state(MenuStateVkusochka.Q4)
+            json.dump(customer, f, ensure_ascii=False)
+        await call.message.edit_text(
+            "Загружаю доступные рестораны...",
+            reply_markup=None)
+        await call.message.edit_text("🏮 Выберите ресторан 🏮", reply_markup=choose_restaraunt_keyboard())
+        await state.set_state(MenuStateVkusochka.Q4)
 
 
 async def delivery_restaraunts_category(call: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    file = data.get('file')
-    lenth = find_page(call.data.split(':')[1].strip(), file)
-    await call.message.edit_text(f"🍩 Выберите блюдо 🍩\nСтраница: {1}/{lenth}", reply_markup=food_by_category(call.data.split(':')[1].strip(), 0, file))
-    await state.update_data(page=0)
-    await state.update_data(category=call.data.split(':')[1].strip())
-    await state.set_state(MenuStateVkusochka.Q2)
+    if is_deliver_started():
+        data = await state.get_data()
+        file = data.get('file')
+        lenth = find_page(call.data.split(':')[1].strip(), file)
+        await call.message.edit_text(f"🍩 Выберите блюдо 🍩\nСтраница: {1}/{lenth}", reply_markup=food_by_category(call.data.split(':')[1].strip(), 0, file))
+        await state.update_data(page=0)
+        await state.update_data(category=call.data.split(':')[1].strip())
+        await state.set_state(MenuStateVkusochka.Q2)
+    else:
+        await call.answer(text="❗ Доставка была завершена, корзина закрыта.", show_alert=True)
+        await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
+        await state.finish()
 
 
 async def delivery_restaraunts_category_left(call: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    page = int(data.get('page'))
-    category = data.get('category')
-    file = data.get('file')
-    lenth = find_page(category, file)
-    if page - 1 >= 0:
-        page -= 1
+    if is_deliver_started():
+        data = await state.get_data()
+        page = int(data.get('page'))
+        category = data.get('category')
+        file = data.get('file')
+        lenth = find_page(category, file)
+        if page - 1 >= 0:
+            page -= 1
+        else:
+            page = lenth - 1
+        await state.update_data(page=page)
+        await call.message.edit_text(f"🍩 Выберите блюдо 🍩\nСтраница: {page+1}/{lenth}", reply_markup=food_by_category(data=category, page=page, file=file))
     else:
-        page = lenth - 1
-    await state.update_data(page=page)
-    await call.message.edit_text(f"🍩 Выберите блюдо 🍩\nСтраница: {page+1}/{lenth}", reply_markup=food_by_category(data=category, page=page, file=file))
+        await call.answer(text="❗ Доставка была завершена, корзина закрыта.", show_alert=True)
+        await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
+        await state.finish()
 
 
 async def delivery_restaraunts_category_right(call: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    page = data.get('page')
-    category = data.get('category')
-    file = data.get('file')
-    lenth = find_page(category, file)
-    if page + 1 == lenth:
-        page = 0
+    if is_deliver_started():
+        data = await state.get_data()
+        page = data.get('page')
+        category = data.get('category')
+        file = data.get('file')
+        lenth = find_page(category, file)
+        if page + 1 == lenth:
+            page = 0
+        else:
+            page += 1
+        await state.update_data(page=page)
+        await call.message.edit_text(f"🍩 Выберите блюдо 🍩\nСтраница: {page+1}/{lenth}", reply_markup=food_by_category(data=category, page=page, file=file))
     else:
-        page += 1
-    await state.update_data(page=page)
-    await call.message.edit_text(f"🍩 Выберите блюдо 🍩\nСтраница: {page+1}/{lenth}", reply_markup=food_by_category(data=category, page=page, file=file))
+        await call.answer(text="❗ Доставка была завершена, корзина закрыта.", show_alert=True)
+        await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
+        await state.finish()
 
 
 async def add_to_basket(call: CallbackQuery, state: FSMContext):
-    food = call.data.split(':')[1]
-    data = await state.get_data()
-    category = data.get('category')
-    page = data.get('page')
-    file_rest = data.get('file')
-    with open(f"{file_rest}.json", "r", encoding='utf-8') as file:
-        vkusochka_menu = json.load(file)
-        file.close()
-        for categorys in vkusochka_menu:
-            if str(vkusochka_menu[categorys][0]) == str(category):
-                choosen_category = categorys
-        for item in vkusochka_menu[choosen_category][1::][page]:
-            if str(item[0][0]) == str(food):
-                with open('basket.json', 'r', encoding='utf-8') as basket:
-                    basket_old = json.load(basket)
-                    basket.close()
-                with open('basket.json', 'w', encoding='utf-8') as basket:
-                    if str(call.from_user.username) in basket_old.keys():
-                        pass
-                    else:
-                        basket_old[str(call.from_user.username)] = dict()
-                    if file_rest in basket_old[str(call.from_user.username)].keys() and basket_old[str(call.from_user.username)][file_rest] is not None:
-                        pass
-                    else:
-                        basket_old[str(call.from_user.username)][file_rest] = list()
-                    basket_old[str(call.from_user.username)][file_rest].append([item[0][1], re.findall(r'\d+', item[1])])
-                    basket_old[str(call.from_user.username)]['id'] = call.from_user.id
-                    basket.write(json.dumps(basket_old, ensure_ascii=False))
-                    await call.answer(text=f'{item[0][1]} добавлено в корзину.', show_alert=True)
+    if is_deliver_started():
+        food = call.data.split(':')[1]
+        data = await state.get_data()
+        category = data.get('category')
+        page = data.get('page')
+        file_rest = data.get('file')
+        with open(f"{file_rest}.json", "r", encoding='utf-8') as file:
+            vkusochka_menu = json.load(file)
+            file.close()
+            for categorys in vkusochka_menu:
+                if str(vkusochka_menu[categorys][0]) == str(category):
+                    choosen_category = categorys
+            for item in vkusochka_menu[choosen_category][1::][page]:
+                if str(item[0][0]) == str(food):
+                    with open('basket.json', 'r', encoding='utf-8') as basket:
+                        basket_old = json.load(basket)
+                        basket.close()
+                    with open('basket.json', 'w', encoding='utf-8') as basket:
+                        if str(call.from_user.username) in basket_old.keys():
+                            pass
+                        else:
+                            basket_old[str(call.from_user.username)] = dict()
+                        if file_rest in basket_old[str(call.from_user.username)].keys() and basket_old[str(call.from_user.username)][file_rest] is not None:
+                            pass
+                        else:
+                            basket_old[str(call.from_user.username)][file_rest] = list()
+                        basket_old[str(call.from_user.username)][file_rest].append([item[0][1], re.findall(r'\d+', item[1])])
+                        basket_old[str(call.from_user.username)]['id'] = call.from_user.id
+                        basket.write(json.dumps(basket_old, ensure_ascii=False))
+                        await call.answer(text=f'{item[0][1]} добавлено в корзину.', show_alert=True)
+    else:
+        await call.answer(text="❗ Доставка была завершена, корзина закрыта.", show_alert=True)
+        await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
+        await state.finish()
 
 
 async def delivery_restaraunts_category_back(call: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    file = data.get('file')
-    await call.message.edit_text("🍔 Выберите категорию 🍔", reply_markup=sets_by_restaraunt(file))
-    await state.set_state(MenuStateVkusochka.Q1)
+    if is_deliver_started():
+        data = await state.get_data()
+        file = data.get('file')
+        await call.message.edit_text("🍔 Выберите категорию 🍔", reply_markup=sets_by_restaraunt(file))
+        await state.set_state(MenuStateVkusochka.Q1)
+    else:
+        await call.answer(text="❗ Доставка была завершена, корзина закрыта.", show_alert=True)
+        await call.message.edit_text("🧾 Главное меню 🧾", reply_markup=menu_keyboard(call.from_user.id))
+        await state.finish()
 
 
 async def make_delivery_back(call: CallbackQuery, state: FSMContext):
@@ -364,7 +415,7 @@ async def show_spends(call: CallbackQuery):
             trigger = 1
             await call.answer(f"💰 За все время вы заказали на {history[clients]} рублей! 💰", show_alert=True)
     if trigger == 0:
-        await call.answer("Пока что вы не завершали заказы через Бота.", show_alert=True)
+        await call.answer("❗ Пока что вы не завершали заказы через Бота.", show_alert=True)
 
 
 async def delivery_start(call: CallbackQuery, state: FSMContext):

@@ -83,8 +83,9 @@ def edit_basket_keyboard(user_name):
         basket = json.load(file)
     keyboard_data = []
     for rest in basket[user_name]:
-        for client_food in basket[user_name][rest]:
-            keyboard_data.append([InlineKeyboardButton(text=str(client_food[0] + " " + str(client_food[1][0]) + "р"), callback_data=basket_callback.new(step=str(basket[user_name][rest].index(client_food)) + "/" + str(rest)))])
+        if rest != 'id':
+            for client_food in basket[user_name][rest]:
+                keyboard_data.append([InlineKeyboardButton(text=str(client_food[0] + " " + str(client_food[1][0]) + "р"), callback_data=basket_callback.new(step=str(basket[user_name][rest].index(client_food)) + "/" + str(rest)))])
     keyboard_data.append([InlineKeyboardButton(text='Назад ↩', callback_data=basket_callback.new(step='back'))])
     return InlineKeyboardMarkup(inline_keyboard=keyboard_data)
 

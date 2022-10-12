@@ -108,7 +108,7 @@ class VkusnoITochka_parser:
 				temp_list = []
 				for food in menu.find_all(class_='RestaurantMenu_item'):
 					food_name = food.find(class_='UiKitDesktopProductCard_name').text
-					food_price = food.find(class_='UiKitDesktopProductCard_price').text.split()[0]
+					food_price = ''.join(food.find(class_='UiKitDesktopProductCard_price').text.split()[:-1])
 
 					if len(temp_list) > 9:
 						all_menu[catergory].append(temp_list)
