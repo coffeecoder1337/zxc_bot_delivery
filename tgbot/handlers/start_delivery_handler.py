@@ -3,7 +3,6 @@ import json
 import re
 import time
 import threading
-import asyncio
 
 ###
 from aiogram import Bot
